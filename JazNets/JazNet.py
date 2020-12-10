@@ -527,7 +527,7 @@ class RNN:
 			targ_idx = inps_and_targs['targ_idx']
 
 			tvec = np.expand_dims(np.arange(0,len(inp))*p['dt'], axis=1)
-			ax.set_xlim([0,p['dt']*len(inp)])
+			#ax.set_xlim([0,p['dt']*len(inp)])
 			line_inp.set_xdata(np.repeat(tvec, inp.shape[1], axis=1).T)
 			line_inp.set_ydata(inp.T)
 			
