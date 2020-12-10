@@ -459,9 +459,9 @@ class RNN:
 				if iteration>0: 
 					glob_axes[0].semilogy([iteration-1,iteration],[total_loss[-2],total_loss[-1]],'b-')
 					glob_fig.canvas.draw()
-					glob_axes[0].title('Iteration %d' % (iteration+1))
-					glob_axes[0].ylabel('Training loss')
-					glob_axes[0].xlabel('Iteration')
+					glob_axes[0].set_title('Iteration %d' % (iteration+1))
+					glob_axes[0].set_ylabel('Training loss')
+					glob_axes[0].set_xlabel('Iteration')
 					
 
 
