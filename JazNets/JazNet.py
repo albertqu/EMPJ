@@ -390,7 +390,7 @@ class RNN:
 			Parameters: 
 				In self.p, the parameters starting with grad_ control this function. 
 			'''
-		
+			glob_fig, glob_axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
 			# First, define the training loss function
 			def training_loss(x, iteration, myparams=kwargs,showplot=0):
 		
@@ -409,11 +409,10 @@ class RNN:
 				error = error/batch_size
 				
 				if showplot:
-					fig = plt.gcf()
-					fig.add_subplot(1,2,2)
-					plt.cla()
-					plt.plot(target,'r--')
-					plt.plot(outputs,'b')
+					fig, axes = showplot
+					axes[1].clear()
+					axes[1].plot(target,'r--')
+					axes[1].plot(outputs,'b')
 					fig.canvas.draw()
 				
 				return error
@@ -454,17 +453,16 @@ class RNN:
 				return unflatten(x), (m, v, i + last_i)
 
 			def callback(weights,iteration,gradient,total_loss=[],lossfun=[]):
-				loss = (lossfun(weights,0,showplot=1))
+				loss = (lossfun(weights,0,showplot=(glob_fig, glob_axes)))
 				total_loss.append(loss)
 				
 				if iteration>0: 
-					fig = plt.gcf()
-					fig.add_subplot(1,2,1)
-					plt.semilogy([iteration-1,iteration],[total_loss[-2],total_loss[-1]],'b-')
-					fig.canvas.draw()
-					plt.title('Iteration %d' % (iteration+1))
-					plt.ylabel('Training loss')
-					plt.xlabel('Iteration')
+					glob_axes[0].semilogy([iteration-1,iteration],[total_loss[-2],total_loss[-1]],'b-')
+					glob_fig.canvas.draw()
+					glob_axes[0].title('Iteration %d' % (iteration+1))
+					glob_axes[0].ylabel('Training loss')
+					glob_axes[0].xlabel('Iteration')
+					
 
 
 			def make_step_sizes():
@@ -475,7 +473,6 @@ class RNN:
 				step_sizes = init_stepsize * decay_factor ** np.ones((num_iters)) #np.arange(num_iters)
 				return step_sizes
 			
-			plt.figure()
 			x = self.rnn_par
 			loss_grad = grad(training_loss)
 			x_fin = myadam(loss_grad, x, callback=callback, num_iters=self.p['grad_num_iters'], 
