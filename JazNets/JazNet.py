@@ -13,14 +13,9 @@ import autograd as autograd
 from autograd import grad
 #from autograd.optimizers import adam
 from autograd.misc.optimizers import adam
-from autograd.misc.flatten import flatten
+from autograd.misc.flatten import flatten_func
 
 import time
-
-def flatten_func(func, example): 
-   _ex, unflatten = flatten(example) 
-   _func = lambda _x, *args: flatten(func(unflatten(_x), *args))[0] 
-   return _func, unflatten, _ex
 
 def create_parameters(dt=0.001):
 	'''Use this to define hyperparameters for any RNN instantiation. You can create an "override" script to 
