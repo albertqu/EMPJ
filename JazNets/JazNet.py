@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 # As yet unused: (needed for gradient-based training)
 import autograd as autograd
 from autograd import grad
-from autograd.optimizers import adam
+#from autograd.optimizers import adam
+from autograd.misc.optimizers import adam
 import time
 
 def create_parameters(dt=0.001):
