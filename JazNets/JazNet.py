@@ -13,7 +13,14 @@ import autograd as autograd
 from autograd import grad
 #from autograd.optimizers import adam
 from autograd.misc.optimizers import adam
+from autograd.misc.flatten import flatten
+
 import time
+
+def flatten_func(func, example): 
+   _ex, unflatten = flatten(example) 
+   _func = lambda _x, *args: flatten(func(unflatten(_x), *args))[0] 
+   return _func, unflatten, _ex
 
 def create_parameters(dt=0.001):
 	'''Use this to define hyperparameters for any RNN instantiation. You can create an "override" script to 
@@ -423,7 +430,7 @@ class RNN:
 					   last_m=None, last_v=None, last_i=0,lossfun=[],printstuff=0):
 				"""Adam as described in http://arxiv.org/pdf/1412.6980.pdf.
 				It's basically RMSprop with momentum and some correction terms."""
-				flattened_grad, unflatten, x = autograd.util.flatten_func(grad, init_params)
+				flattened_grad, unflatten, x = flatten_func(grad, init_params)
 
 				if type(step_sizes) == float or type(step_sizes) == int:
 					step_sizes = step_sizes * np.ones(num_iters)
