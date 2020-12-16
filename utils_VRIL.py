@@ -8,7 +8,6 @@ from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 
 
-
 def hfile_to_df(hfile, tbin='frame'):
     # sampling interval
     all_cols = []
@@ -130,7 +129,7 @@ def VRIL(dt=0.005, df=None, showplots=False, algorithm=[]):
     # will randomly generate iti
     # Here functions are autograd.numpy but should be the same
     # TUNABLES
-    df = df.dropna().reset_index()
+    df = df.dropna().reset_index(drop=True)
     mean_iti = 0  # Randomly sample not very important
     down_min = 0.02
     down_max = 0.1
@@ -234,7 +233,7 @@ def VRILTR(dt=0.005, df=None, showplots=False, algorithm=[]):
     # will randomly generate iti
     # Here functions are autograd.numpy but should be the same
     # TUNABLES
-    df = df.dropna().reset_index()
+    df = df.dropna().reset_index(drop=True)
     mean_iti = 0  # Randomly sample not very important
     down_min = 0.02
     down_max = 0.1
@@ -339,7 +338,7 @@ def VRIL_ID(dt=0.005, df=None, showplots=False, algorithm=[]):
     # will randomly generate iti
     # Here functions are autograd.numpy but should be the same
     # TUNABLES
-    df = df.dropna().reset_index()
+    df = df.dropna().reset_index(drop=True)
     unique_ID = np.unique(df['subj'])
     # Hard Wired
     indx = np.random.randint(len(unique_ID))
@@ -453,7 +452,7 @@ def RNNtest(rnn, InpsAndTargsFunc, testdelay=0, **kwargs):
 def plot_multiple_test(rnn, newdf, condition, nrow=5, saveopt=None):
     p = rnn.p
     p['test_trials'] = nrow
-    subdf = newdf[newdf['condition'] == condition].reset_index()
+    subdf = newdf[newdf['condition'] == condition].reset_index(drop=True)
     Enorm, savedict= RNNtest(rnn, VRILTR, testdelay=0, df=subdf)
     pdf = savedict['df']
     fig, axes = plt.subplots(nrows=nrow, ncols=2, figsize=(20, 20))
@@ -478,13 +477,15 @@ def plot_multiple_test(rnn, newdf, condition, nrow=5, saveopt=None):
             os.makedirs(saveopt)
         fig.savefig(os.path.join(saveopt, f'empj_test_{condition}'))
 
-def plot_test_average_results(rnn, newdf, saveopt=None, niter=5):
+
+def plot_test_average_results(rnn, newdf, saveopt=None, etype='theta', niter=5):
     p = rnn.p
     conditions = np.unique(newdf['condition'])
     p['test_trials'] = niter
     alldfs = []
+    otherdfs = []
     for cond in conditions:
-        subdf = newdf[newdf['condition'] == cond].reset_index()
+        subdf = newdf[newdf['condition'] == cond].reset_index(drop=True)
         Enorm, savedict= RNNtest(rnn, VRILTR, testdelay=0, df=subdf)
         resid = savedict['final_outs']-savedict['final_targs']
         erros = np.concatenate([np.full(resid.shape[1], vv) for vv in ['x_err', 'y_err']])
@@ -492,24 +493,42 @@ def plot_test_average_results(rnn, newdf, saveopt=None, niter=5):
         currdf = pd.DataFrame(np.vstack((resid.ravel(order='C'), erros)).T,
                               columns=['RNN-target', 'type'])
         currdf['condition'] = cond
+        otherdf = pd.DataFrame(resid.T, columns=['x_err', 'y_err'])
+        otherdf['output_x'] = savedict['final_outs'][0]
+        otherdf['output_y'] = savedict['final_outs'][1]
+        otherdf['targ_x'] = savedict['final_targs'][0]
+        otherdf['targ_y'] = savedict['final_targs'][1]
+        otherdf['condition'] = cond
+        otherdfs.append(otherdf)
         alldfs.append(currdf)
     alldfs = pd.concat(alldfs, axis=0, ignore_index=True)
+    otherdfs = pd.concat(otherdfs, axis=0, ignore_index=True)
+    otherdfs['output_theta'] = np.arctan(otherdfs['output_y'] / otherdfs['output_x']) * 180 / np.pi
+    otherdfs['targ_theta'] = np.arctan(otherdfs['targ_y'] / otherdfs['targ_x']) * 180 / np.pi
+    otherdfs['theta_err'] = otherdfs['output_theta'] - otherdfs['targ_theta']
+    otherdfs['E2_err'] = np.sqrt(otherdfs['x_err'] ** 2 + otherdfs['y_err'] ** 2)
+
     alldfs['RNN-target'] = alldfs['RNN-target'].astype(np.float)
-    g = sns.catplot(x='RNN-target', row='type', y='condition', kind='bar', data=alldfs, ci=95)
-    if saveopt is not None:
-        plt.savefig(os.path.join(saveopt, 'average_error'))
+    if etype == 'xy':
+        g = sns.catplot(x='RNN-target', row='type', y='condition', kind='violin', data=alldfs, ci=95)
+        if saveopt is not None:
+            plt.savefig(os.path.join(saveopt, 'average_xy_error_test.png'))
+    elif etype == 'E2':
+        g1 = sns.catplot(x='E2_err', y='condition', kind='violin', data=otherdfs, ci=95)
+        if saveopt is not None:
+            plt.savefig(os.path.join(saveopt, 'average_E2_error_test.png'))
+    elif etype == 'theta':
+        g2 = sns.catplot(x='theta_err', y='condition', kind='violin', data=otherdfs, ci=95)
+        if saveopt is not None:
+            plt.savefig(os.path.join(saveopt, 'average_theta_error_test.png'))
+    return otherdfs
 
 
-
-def view_ring(savedict):
+def view_ring(savedict, pca, cond, saveopt=None):
     ACT = savedict['activity']
-    X = ACT
+    #X = ACT
     activities = ACT
     allsteps = savedict['step']
-
-    X = np.vstack(X)
-    pca = PCA(n_components=3)
-    pca.fit(X)
 
     fig = plt.figure(figsize=[15, 15])
     ax = fig.add_subplot(111, projection='3d')
@@ -527,7 +546,6 @@ def view_ring(savedict):
         ts_motor = motor_indx / len(act)
         memc = np.vstack((1 - ts_mem, np.full_like(ts_mem, 0.1), ts_mem)).T
         memc = [tuple(np.around(memc[i], 3)) for i in range(len(memc))]
-        # memc =
         memc = [0.9, 0.2, 0.2]
         # ax.plot3D(traj[:,0],traj[:,1],traj[:,2],'o',color=c,alpha=0.1)
         ax.plot3D(traj[mem_indx, 0], traj[mem_indx, 1], traj[mem_indx, 2], 'o',
@@ -538,13 +556,13 @@ def view_ring(savedict):
         ax.plot3D(traj[motor_indx, 0], traj[motor_indx, 1], traj[motor_indx, 2], 'o',
                   color=motorc, alpha=.3)
         if i == 0:
-            last_start = ax.scatter3D(traj[0, 0], traj[0, 1], traj[0, 2], color=[0, 0, 1], label='mem_start')
-            start = ax.scatter3D(traj[dstart, 0], traj[dstart, 1], traj[dstart, 2], color=[1, 0, 0],
+            last_start = ax.scatter3D(traj[0, 0], traj[0, 1], traj[0, 2], color=[1, 0, 0], label='mem_start')
+            start = ax.scatter3D(traj[dstart, 0], traj[dstart, 1], traj[dstart, 2], color=[0, 0, 1],
                                  label='motor_start')
             finish = ax.scatter3D(traj[-1, 0], traj[-1, 1], traj[-1, 2], color=[0, 0, 0], label='finish')
         else:
-            last_start = ax.scatter3D(traj[0, 0], traj[0, 1], traj[0, 2], color=[0, 0, 1])
-            start = ax.scatter3D(traj[dstart, 0], traj[dstart, 1], traj[dstart, 2], color=[1, 0, 0])
+            last_start = ax.scatter3D(traj[0, 0], traj[0, 1], traj[0, 2], color=[1, 0, 0])
+            start = ax.scatter3D(traj[dstart, 0], traj[dstart, 1], traj[dstart, 2], color=[0, 0, 1])
             finish = ax.scatter3D(traj[-1, 0], traj[-1, 1], traj[-1, 2], color=[0, 0, 0])
         # Plotting the first start position:
         # if i==0:
@@ -561,16 +579,27 @@ def view_ring(savedict):
     ax.axes.xaxis.set_ticklabels([])
     ax.axes.yaxis.set_ticklabels([])
     plt.tight_layout()
-    return pca, ax
-
-
-def plot_pca_by_condition(rnn, newdf, condition, niter=30, saveopt=None):
-    rnn.p['test_trials'] = niter
-    subdf = newdf[newdf['condition'] == condition].reset_index()
-    Enorm, savedict = RNNtest(rnn, VRILTR, testdelay=0, df=subdf)
-    view_ring(savedict)
+    ax.set_title(f'RNN activity PCA {cond} Condition')
     if saveopt is not None:
-        plt.title(f'RNN activity PCA {condition} Condition')
-        plt.savefig(os.path.join(saveopt, f'PCA_RNN_activity_{condition}.png'))
+        fig.savefig(os.path.join(saveopt, f'PCA_RNN_activity_{cond}.png'))
+    return fig, ax
 
 
+def plot_pca_by_condition(rnn, newdf, niter=30, saveopt=None):
+    rnn.p['test_trials'] = niter
+    all_activities = []
+    savedicts = {}
+    for cond in np.unique(newdf['condition']):
+        #plot_pca_by_condition(rnn, newdf, cond, 40, saveopt=saveopt)
+        subdf = newdf[newdf['condition'] == cond].reset_index(drop=True)
+        Enorm, savedict = RNNtest(rnn, VRILTR, testdelay=0, df=subdf)
+        # project all
+        all_activities += savedict['activity']
+        savedicts[cond] = savedict
+    aX = np.vstack(all_activities)
+    #print(aX.shape)
+    pca = PCA(n_components=3)
+    pca.fit(aX)
+
+    for cond in np.unique(newdf['condition']):
+        fig, ax = view_ring(savedicts[cond], pca, cond, saveopt=saveopt)
