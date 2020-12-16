@@ -119,7 +119,7 @@ def take_slice_by_id(df, slice_n=20):
 
 
 def df_train_test_split(df, frac=0.8):
-    df = df.reset_index()
+    df = df.reset_index(drop=True)
     train_set = df.sample(frac=0.8, replace=False)
     test_set = df.drop(train_set.index)
     return train_set.reset_index(drop=True), test_set.reset_index(drop=True)
