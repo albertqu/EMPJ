@@ -546,6 +546,7 @@ def view_ring(savedict, pca, cond, saveopt=None):
         ts_motor = motor_indx / len(act)
         memc = np.vstack((1 - ts_mem, np.full_like(ts_mem, 0.1), ts_mem)).T
         memc = [tuple(np.around(memc[i], 3)) for i in range(len(memc))]
+        # memc =
         memc = [0.9, 0.2, 0.2]
         # ax.plot3D(traj[:,0],traj[:,1],traj[:,2],'o',color=c,alpha=0.1)
         ax.plot3D(traj[mem_indx, 0], traj[mem_indx, 1], traj[mem_indx, 2], 'o',
@@ -578,11 +579,11 @@ def view_ring(savedict, pca, cond, saveopt=None):
 
     ax.axes.xaxis.set_ticklabels([])
     ax.axes.yaxis.set_ticklabels([])
-    plt.tight_layout()
     ax.set_title(f'RNN activity PCA {cond} Condition')
     if saveopt is not None:
         fig.savefig(os.path.join(saveopt, f'PCA_RNN_activity_{cond}.png'))
     return fig, ax
+
 
 
 def plot_pca_by_condition(rnn, newdf, niter=30, saveopt=None):
@@ -597,7 +598,6 @@ def plot_pca_by_condition(rnn, newdf, niter=30, saveopt=None):
         all_activities += savedict['activity']
         savedicts[cond] = savedict
     aX = np.vstack(all_activities)
-    #print(aX.shape)
     pca = PCA(n_components=3)
     pca.fit(aX)
 
